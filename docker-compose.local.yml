@@ -1,0 +1,8 @@
+# Usar com PostgreSQL 18 instalado no host (Windows/Linux local)
+# Exemplo: docker compose -f docker-compose.yml -f docker-compose.local.yml up --build backend caddy
+services:
+  backend:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=host.docker.internal;Port=5432;Database=HealthyDataBase;Username=root;Password=zfu2vyaf"
