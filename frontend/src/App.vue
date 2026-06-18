@@ -16,6 +16,10 @@
       <div v-if="loading" class="loading">Verificando endpoints...</div>
 
       <div v-else class="details">
+        <div v-if="backendUpdateMessage" class="backend-alert">
+          {{ backendUpdateMessage }}
+        </div>
+
         <div class="endpoint" :class="{ ok: basicOk, fail: !basicOk }">
           <strong>GetBasic:</strong> {{ basicMessage }}
         </div>
@@ -64,6 +68,7 @@ export default {
       dataOk: false,
       basicMessage: '',
       dataMessage: '',
+      backendUpdateMessage: '',
       dbItems: [],
       newMessage: '',
       submitting: false,
@@ -96,7 +101,7 @@ export default {
   methods: {
     async checkHealth() {
       this.loading = true
-      await Promise.all([this.fetchBasic(), this.fetchData()])
+      await Promise.all([this.fetchBasic(), this.fetchBackendUpdate(), this.fetchData()])
       this.loading = false
     },
     async fetchBasic() {
@@ -109,6 +114,16 @@ export default {
       } catch (error) {
         this.basicOk = false
         this.basicMessage = `Erro: ${error.message}`
+      }
+    },
+    async fetchBackendUpdate() {
+      try {
+        const response = await fetch(`${API_BASE}/healthy/backend-update`)
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        const body = await response.json()
+        this.backendUpdateMessage = body.message || ''
+      } catch {
+        this.backendUpdateMessage = ''
       }
     },
     async fetchData() {
@@ -266,6 +281,15 @@ h1 {
 
 .endpoint.fail {
   border-left: 4px solid #ef4444;
+}
+
+.backend-alert {
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(248, 113, 113, 0.65);
+  border-radius: 10px;
+  background: rgba(127, 29, 29, 0.5);
+  color: #fecaca;
+  font-weight: 700;
 }
 
 .data-list {

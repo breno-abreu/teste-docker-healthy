@@ -26,6 +26,16 @@ public class HealthyController : ControllerBase
         });
     }
 
+    [HttpGet("backend-update")]
+    public IActionResult GetBackendUpdate()
+    {
+        return Ok(new
+        {
+            success = true,
+            message = "ALERTA! O backend foi atualizado com sucesso no servidor."
+        });
+    }
+
     [HttpGet("data")]
     public async Task<IActionResult> GetData()
     {
