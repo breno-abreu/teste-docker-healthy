@@ -59,7 +59,13 @@ public class HealthyController : ControllerBase
             return BadRequest(new { success = false, message = "O campo message é obrigatório" });
         }
 
-        var item = new HealtyItem { Message = request.Message.Trim() };
+        var item = new HealtyItem
+        {
+            Message = request.Message.Trim(),
+            Category = string.IsNullOrWhiteSpace(request.Category)
+                ? "Geral"
+                : request.Category.Trim()
+        };
         _dbContext.HealtyItems.Add(item);
         await _dbContext.SaveChangesAsync();
 
@@ -67,6 +73,48 @@ public class HealthyController : ControllerBase
         {
             success = true,
             message = "Registro inserido com sucesso",
+            data = item
+        });
+    }
+
+    [HttpGet("tasks")]
+    public async Task<IActionResult> GetTasks()
+    {
+        var items = await _dbContext.HealthyTaskItems
+            .OrderBy(i => i.Id)
+            .ToListAsync();
+
+        return Ok(new
+        {
+            success = true,
+            message = "Dados da nova tabela recuperados com sucesso",
+            data = items
+        });
+    }
+
+    [HttpPost("tasks")]
+    public async Task<IActionResult> PostTask([FromBody] CreateHealthyTaskItemRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            return BadRequest(new { success = false, message = "O campo title é obrigatório" });
+        }
+
+        var item = new HealthyTaskItem
+        {
+            Title = request.Title.Trim(),
+            Notes = string.IsNullOrWhiteSpace(request.Notes)
+                ? "Sem observações"
+                : request.Notes.Trim()
+        };
+
+        _dbContext.HealthyTaskItems.Add(item);
+        await _dbContext.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            message = "Item da nova tabela inserido com sucesso",
             data = item
         });
     }

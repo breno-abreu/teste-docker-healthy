@@ -10,6 +10,7 @@ public class HealthyDbContext : DbContext
     }
 
     public DbSet<HealtyItem> HealtyItems => Set<HealtyItem>();
+    public DbSet<HealthyTaskItem> HealthyTaskItems => Set<HealthyTaskItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -19,6 +20,16 @@ public class HealthyDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Message).HasColumnName("message").IsRequired();
+            entity.Property(e => e.Category).HasColumnName("category").IsRequired();
+        });
+
+        modelBuilder.Entity<HealthyTaskItem>(entity =>
+        {
+            entity.ToTable("HealthyTaskTable");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Title).HasColumnName("title").IsRequired();
+            entity.Property(e => e.Notes).HasColumnName("notes").IsRequired();
         });
     }
 }

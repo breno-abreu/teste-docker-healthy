@@ -29,7 +29,9 @@
 
         <ul v-if="dbItems.length" class="data-list">
           <li v-for="item in dbItems" :key="item.id">
-            <span class="item-id">#{{ item.id }}</span> {{ item.message }}
+            <span class="item-id">#{{ item.id }}</span>
+            <span class="item-message">{{ item.message }}</span>
+            <span class="item-category">{{ item.category }}</span>
           </li>
         </ul>
 
@@ -43,6 +45,12 @@
               placeholder="Nova mensagem..."
               :disabled="submitting"
             />
+            <input
+              v-model="newCategory"
+              type="text"
+              placeholder="Categoria..."
+              :disabled="submitting"
+            />
             <button type="submit" :disabled="submitting || !newMessage.trim()">
               {{ submitting ? 'Salvando...' : 'Inserir' }}
             </button>
@@ -51,6 +59,46 @@
             {{ insertFeedback }}
           </p>
         </form>
+
+        <section class="task-card">
+          <div class="task-header">
+            <h2>Nova tabela: HealthyTaskTable</h2>
+            <span :class="{ ok: tasksOk, fail: !tasksOk }">{{ tasksMessage }}</span>
+          </div>
+
+          <ul v-if="taskItems.length" class="data-list task-list">
+            <li v-for="item in taskItems" :key="item.id">
+              <span class="item-id">#{{ item.id }}</span>
+              <strong>{{ item.title }}</strong>
+              <span>{{ item.notes }}</span>
+            </li>
+          </ul>
+
+          <form class="insert-form" @submit.prevent="submitTask">
+            <label for="task-title">Inserir item na nova tabela</label>
+            <div class="insert-row task-row">
+              <input
+                id="task-title"
+                v-model="newTaskTitle"
+                type="text"
+                placeholder="Titulo..."
+                :disabled="taskSubmitting"
+              />
+              <input
+                v-model="newTaskNotes"
+                type="text"
+                placeholder="Observacoes..."
+                :disabled="taskSubmitting"
+              />
+              <button type="submit" :disabled="taskSubmitting || !newTaskTitle.trim()">
+                {{ taskSubmitting ? 'Salvando...' : 'Inserir' }}
+              </button>
+            </div>
+            <p v-if="taskFeedback" class="insert-feedback" :class="taskFeedbackType">
+              {{ taskFeedback }}
+            </p>
+          </form>
+        </section>
       </div>
     </div>
   </div>
@@ -70,15 +118,24 @@ export default {
       dataMessage: '',
       backendUpdateMessage: '',
       dbItems: [],
+      tasksOk: false,
+      tasksMessage: '',
+      taskItems: [],
       newMessage: '',
+      newCategory: '',
       submitting: false,
       insertFeedback: '',
-      insertFeedbackType: ''
+      insertFeedbackType: '',
+      newTaskTitle: '',
+      newTaskNotes: '',
+      taskSubmitting: false,
+      taskFeedback: '',
+      taskFeedbackType: ''
     }
   },
   computed: {
     isHealthy() {
-      return this.basicOk && this.dataOk
+      return this.basicOk && this.dataOk && this.tasksOk
     },
     cardClass() {
       if (this.loading) return 'card-neutral'
@@ -101,7 +158,7 @@ export default {
   methods: {
     async checkHealth() {
       this.loading = true
-      await Promise.all([this.fetchBasic(), this.fetchBackendUpdate(), this.fetchData()])
+      await Promise.all([this.fetchBasic(), this.fetchBackendUpdate(), this.fetchData(), this.fetchTasks()])
       this.loading = false
     },
     async fetchBasic() {
@@ -140,9 +197,24 @@ export default {
         this.dbItems = []
       }
     },
+    async fetchTasks() {
+      try {
+        const response = await fetch(`${API_BASE}/healthy/tasks`)
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        const body = await response.json()
+        this.tasksOk = body.success === true && Array.isArray(body.data) && body.data.length > 0
+        this.tasksMessage = body.message || 'Resposta recebida'
+        this.taskItems = body.data || []
+      } catch (error) {
+        this.tasksOk = false
+        this.tasksMessage = `Erro: ${error.message}`
+        this.taskItems = []
+      }
+    },
     async submitData() {
       const message = this.newMessage.trim()
       if (!message) return
+      const category = this.newCategory.trim() || 'Geral'
 
       this.submitting = true
       this.insertFeedback = ''
@@ -151,7 +223,7 @@ export default {
         const response = await fetch(`${API_BASE}/healthy/data`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message })
+          body: JSON.stringify({ message, category })
         })
 
         const body = await response.json()
@@ -160,6 +232,7 @@ export default {
         }
 
         this.newMessage = ''
+        this.newCategory = ''
         this.insertFeedback = `Registro #${body.data.id} salvo no banco.`
         this.insertFeedbackType = 'ok'
         await this.fetchData()
@@ -168,6 +241,38 @@ export default {
         this.insertFeedbackType = 'fail'
       } finally {
         this.submitting = false
+      }
+    },
+    async submitTask() {
+      const title = this.newTaskTitle.trim()
+      if (!title) return
+      const notes = this.newTaskNotes.trim() || 'Sem observações'
+
+      this.taskSubmitting = true
+      this.taskFeedback = ''
+
+      try {
+        const response = await fetch(`${API_BASE}/healthy/tasks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, notes })
+        })
+
+        const body = await response.json()
+        if (!response.ok || body.success !== true) {
+          throw new Error(body.message || `HTTP ${response.status}`)
+        }
+
+        this.newTaskTitle = ''
+        this.newTaskNotes = ''
+        this.taskFeedback = `Item #${body.data.id} salvo na nova tabela.`
+        this.taskFeedbackType = 'ok'
+        await this.fetchTasks()
+      } catch (error) {
+        this.taskFeedback = `Erro ao inserir: ${error.message}`
+        this.taskFeedbackType = 'fail'
+      } finally {
+        this.taskSubmitting = false
       }
     }
   }
@@ -186,7 +291,7 @@ export default {
 
 .card {
   width: 100%;
-  max-width: 520px;
+  max-width: 720px;
   border-radius: 16px;
   padding: 2rem;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
@@ -310,6 +415,57 @@ h1 {
   margin-right: 0.5rem;
 }
 
+.item-message {
+  margin-right: 0.5rem;
+}
+
+.item-category {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.22);
+  color: #bfdbfe;
+  font-size: 0.75rem;
+}
+
+.task-card {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.task-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.task-header h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.task-header span {
+  font-size: 0.75rem;
+}
+
+.task-header .ok {
+  color: #bbf7d0;
+}
+
+.task-header .fail {
+  color: #fecaca;
+}
+
+.task-list strong {
+  margin-right: 0.5rem;
+}
+
 .insert-form {
   margin-top: 1rem;
   padding-top: 1rem;
@@ -330,6 +486,7 @@ h1 {
 
 .insert-row input {
   flex: 1;
+  min-width: 0;
   padding: 0.6rem 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
@@ -356,6 +513,10 @@ h1 {
 .insert-row button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.task-row {
+  align-items: stretch;
 }
 
 .insert-feedback {
