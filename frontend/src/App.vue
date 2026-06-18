@@ -1,6 +1,11 @@
 <template>
   <div class="page">
     <div class="card" :class="cardClass">
+      <div class="update-banner">
+        <span class="update-label">Atualizacao aplicada</span>
+        <p>Este card foi adicionado para validar o fluxo de atualizacao do frontend no servidor.</p>
+      </div>
+
       <div class="card-header">
         <span class="status-icon">{{ isHealthy ? '✓' : '✗' }}</span>
         <h1>{{ title }}</h1>
@@ -186,6 +191,31 @@ export default {
 .card-error {
   background: linear-gradient(145deg, #7f1d1d, #991b1b);
   border: 2px solid #ef4444;
+}
+
+.update-banner {
+  margin-bottom: 1.25rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  border-radius: 12px;
+  background: rgba(250, 204, 21, 0.12);
+}
+
+.update-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #facc15;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.update-banner p {
+  margin: 0;
+  color: #fef3c7;
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
 
 .card-header {
